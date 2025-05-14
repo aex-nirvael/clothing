@@ -6,9 +6,9 @@ code for data processing
 import glob
 import os
 import cv2
+import numpy as np
 
 from torch.utils import data
-from torchvision import transforms
 
 
 class VITONDataset(data.Dataset):
@@ -36,7 +36,8 @@ class VITONDataset(data.Dataset):
         image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
         image = cv2.resize(image, (192, 256), interpolation = cv2.INTER_LINEAR)
 
-        # figure out size, datatype, precision
+        # normalise to [-1,1]
+        image = (image / 127.5) - 1.0
 
         return image
     
@@ -44,8 +45,8 @@ class VITONDataset(data.Dataset):
     def __getitem__(self, index):
 
         ref_path = self.reference_images[index]
-        cloth_path = self.reference_images[index]
-        gt_path = self.reference_images[index]
+        cloth_path = self.clothing_images[index]
+        gt_path = self.gt_images[index]
 
         ref_image = self.load_image(ref_path)
         cloth_image = self.load_image(cloth_path)
@@ -57,7 +58,7 @@ class VITONDataset(data.Dataset):
 
 
 class VITONDataLoader:
-    def __init__(self, dataset, train=True):
+    def __init__(self, dataset, batch_size, train=True):
         super(VITONDataLoader, self).__init__()
 
         if train:
@@ -66,7 +67,7 @@ class VITONDataLoader:
             train_sampler = None
 
         self.data_loader = data.DataLoader(
-                dataset, batch_size=4, shuffle=(train_sampler is None),
+                dataset, batch_size=batch_size, shuffle=(train_sampler is None),
                 num_workers=0, pin_memory=True, drop_last=True, sampler=train_sampler
         )
         self.dataset = dataset
@@ -81,3 +82,14 @@ class VITONDataLoader:
 
         return batch
         
+
+def save_image(pred, outdir, step):
+    """
+    (B,3,H,W) tensor -> saves each image in batch to out dir
+    """
+    for i, image in enumerate(pred):
+        image_np = image.permute(1,2,0).cpu().detach().numpy()
+        # normalise to 0-255
+        image_np = (image_np + 1.0) * 127.5
+        cv2.imwrite(f"{outdir}/image_step{step}_batch{i}.png", image_np)
+
