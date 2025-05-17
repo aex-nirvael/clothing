@@ -83,13 +83,27 @@ class VITONDataLoader:
         return batch
         
 
-def save_image(pred, outdir, step):
+def save_image(image):
     """
     (B,3,H,W) tensor -> saves each image in batch to out dir
     """
-    for i, image in enumerate(pred):
-        image_np = image.permute(1,2,0).cpu().detach().numpy()
-        # normalise to 0-255
-        image_np = (image_np + 1.0) * 127.5
-        cv2.imwrite(f"{outdir}/image_step{step}_batch{i}.png", image_np)
+    image_np = image.permute(1,2,0).cpu().detach().numpy()
+    # normalise to 0-255
+    image_np = (image_np + 1.0) * 127.5
+
+    return image_np
+
+
+def save_images(refs, clothings, gts, preds, outdir, step):
+    """
+    (B,3,H,W) tensor -> saves each image in batch to out dir
+    """
+    for i, (ref, clothing, gt, pred) in enumerate(zip(refs, clothings, gts, preds)):
+        ref_np = save_image(ref)
+        clothing_np = save_image(clothing)
+        gt_np = save_image(gt)
+        pred_np = save_image(pred)
+
+        all_images = np.concatenate((ref_np, clothing_np, gt_np, pred_np), axis=1)
+        cv2.imwrite(f"{outdir}/image_step{step}_batch{i}.png", all_images)
 
