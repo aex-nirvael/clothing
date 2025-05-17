@@ -28,12 +28,12 @@ def run():
   CHAN_IN = 3
   CHAN_OUT = 3
   EPOCHS = 100
-  BATCH_SIZE = 4
+  BATCH_SIZE = 8
   SAVE_FREQUENCY = 200
-  OUTDIR = "experiment_3"
-  pixel_weight = 1.0
+  OUTDIR = "experiment_4_1"
+  pixel_weight = 0.5
   percep_weight = 0.1
-  disc_step = 5
+  disc_step = 2
 
   ## train_dataset
   dataset = VITONDataset()
