@@ -58,37 +58,47 @@ class ClothingModel(torch.nn.Module):
     # reference encoder layers
     self.conv1_1 = torch.nn.Sequential(torch.nn.Conv2d(self.chan_in, 8, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(8)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv1_2 = torch.nn.Sequential(torch.nn.Conv2d(8, 32, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(32)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv1_3 = torch.nn.Sequential(torch.nn.Conv2d(32, 64, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(64)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
+                                      )
+    
+    self.conv1_4 = torch.nn.Sequential(torch.nn.Conv2d(64, 128, self.kernel_size, stride=2, padding=1)
+                                      , torch.nn.BatchNorm2d(128)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
     
     # clothing encoder layers
     self.conv2_1 = torch.nn.Sequential(torch.nn.Conv2d(self.chan_in, 8, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(8)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv2_2 = torch.nn.Sequential(torch.nn.Conv2d(8, 32, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(32)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv2_3 = torch.nn.Sequential(torch.nn.Conv2d(32, 64, self.kernel_size, stride=2, padding=1)
                                       , torch.nn.BatchNorm2d(64)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.LeakyReLU(inplace=True)
+                                      )
+    
+    self.conv2_4 = torch.nn.Sequential(torch.nn.Conv2d(64, 128, self.kernel_size, stride=2, padding=1)
+                                      , torch.nn.BatchNorm2d(128)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     # bottleneck layer
-    self.xattn = XAttn(in_channels=64)
+    self.xattn = XAttn(in_channels=128)
 
     # self.conv4 = torch.nn.Sequential(torch.nn.Conv2d(128, 128, self.kernel_size, stride=1, padding=1)
     #                                   , torch.nn.BatchNorm2d(128)
@@ -97,25 +107,31 @@ class ClothingModel(torch.nn.Module):
 
     # decoder layers
     self.conv5 = torch.nn.Sequential(torch.nn.Upsample(scale_factor=2)
-                                      , torch.nn.Conv2d(192, 96, self.kernel_size, stride=1, padding=1)
-                                      , torch.nn.BatchNorm2d(96)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.Conv2d(384, 192, self.kernel_size, stride=1, padding=1)
+                                      , torch.nn.BatchNorm2d(192)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv6 = torch.nn.Sequential(torch.nn.Upsample(scale_factor=2)
-                                      , torch.nn.Conv2d(160, 80, self.kernel_size, stride=1, padding=1)
-                                      , torch.nn.BatchNorm2d(80)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.Conv2d(320, 160, self.kernel_size, stride=1, padding=1)
+                                      , torch.nn.BatchNorm2d(160)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
     self.conv7 = torch.nn.Sequential(torch.nn.Upsample(scale_factor=2)
-                                      , torch.nn.Conv2d(96, 48, self.kernel_size, stride=1, padding=1)
-                                      , torch.nn.BatchNorm2d(48)
-                                      , torch.nn.ReLU(inplace=True)
+                                      , torch.nn.Conv2d(224, 112, self.kernel_size, stride=1, padding=1)
+                                      , torch.nn.BatchNorm2d(112)
+                                      , torch.nn.LeakyReLU(inplace=True)
+                                      )
+    
+    self.conv8 = torch.nn.Sequential(torch.nn.Upsample(scale_factor=2)
+                                      , torch.nn.Conv2d(128, 64, self.kernel_size, stride=1, padding=1)
+                                      , torch.nn.BatchNorm2d(64)
+                                      , torch.nn.LeakyReLU(inplace=True)
                                       )
 
-    self.out = torch.nn.Sequential(torch.nn.Conv2d(54, self.chan_out, self.kernel_size, stride=1, padding=1)
-                                    , torch.nn.Sigmoid()
+    self.out = torch.nn.Sequential(torch.nn.Conv2d(70, self.chan_out, self.kernel_size, stride=1, padding=1)
+                                    , torch.nn.Tanh()
                                       )
 
   def forward(self, x1, x2):
@@ -133,6 +149,8 @@ class ClothingModel(torch.nn.Module):
     skips_1.append(x1)
     x1 = self.conv1_3(x1)
     skips_1.append(x1)
+    x1 = self.conv1_4(x1)
+    skips_1.append(x1)
 
     # clothing encoder
     x2 = self.conv2_1(x2)
@@ -141,25 +159,21 @@ class ClothingModel(torch.nn.Module):
     skips_2.append(x2)
     x2 = self.conv2_3(x2)
     skips_2.append(x2)
+    x2 = self.conv2_4(x2)
+    skips_2.append(x2)
 
     # bottleneck with x-attn
     x = self.xattn(x1, x2)
-    # print("shapes after xattn ", x.shape, skips_1[3].shape, skips_2[3].shape)
-    # shapes after xattn  torch.Size([4, 64, 32, 24]) torch.Size([4, 64, 32, 24]) torch.Size([4, 64, 32, 24])
 
     # decoder
-    x = torch.cat((x, skips_1[3], skips_2[3]), dim=1)
+    x = torch.cat((x, skips_1[4], skips_2[4]), dim=1)
     x = self.conv5(x)
-    # print("shapes after conv5 ", x.shape, skips_1[2].shape, skips_2[2].shape)
-    # shapes after conv5  torch.Size([4, 96, 64, 48]) torch.Size([4, 32, 64, 48]) torch.Size([4, 32, 64, 48])
-    x = torch.cat((x, skips_1[2], skips_2[2]), dim=1)
+    x = torch.cat((x, skips_1[3], skips_2[3]), dim=1)
     x = self.conv6(x)
-    # print("shapes after conv6 ", x.shape, skips_1[1].shape, skips_2[1].shape)
-    # shapes after conv6  torch.Size([4, 80, 128, 96]) torch.Size([4, 8, 128, 96]) torch.Size([4, 8, 128, 96])
-    x = torch.cat((x, skips_1[1], skips_2[1]), dim=1)
+    x = torch.cat((x, skips_1[2], skips_2[2]), dim=1)
     x = self.conv7(x)
-    # print("shapes after conv7 ", x.shape, skips_1[0].shape, skips_2[0].shape)
-    # shapes after conv7  torch.Size([4, 48, 256, 192]) torch.Size([4, 3, 256, 192]) torch.Size([4, 3, 256, 192])
+    x = torch.cat((x, skips_1[1], skips_2[1]), dim=1)
+    x = self.conv8(x)
     x = torch.cat((x, skips_1[0], skips_2[0]), dim=1)
 
     return self.out(x)

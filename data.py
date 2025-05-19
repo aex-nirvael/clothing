@@ -85,7 +85,7 @@ class VITONDataLoader:
 
 def save_image(image):
     """
-    (B,3,H,W) tensor -> saves each image in batch to out dir
+    (B,3,H,W) tensor -> converts each image to np image and renormalise to [0,255]
     """
     image_np = image.permute(1,2,0).cpu().detach().numpy()
     # normalise to 0-255

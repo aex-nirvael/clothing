@@ -3,12 +3,11 @@ copyright Alex Whelan 2025
 code for running the clothing model
 '''
 ### TO-DO ###
-# stretch goal: x-attn
+# tidy up code
 ###
 
 from tqdm import tqdm
 
-import numpy as np
 import torch
 import lpips
 
@@ -23,25 +22,26 @@ warnings.filterwarnings("ignore", message=".*Arguments other than a weight enum 
 def run():
   ## device
   device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
+
   print(f"Using device {device}")
   ## Training parameters
-  CHAN_IN = 3
-  CHAN_OUT = 3
-  EPOCHS = 100
-  BATCH_SIZE = 8
-  SAVE_FREQUENCY = 200
-  OUTDIR = "experiment_4_1"
+  chan_in = 3
+  chan_out = 3
+  epochs = 100
+  batch_size = 8
+  save_frequency = 200
+  outdir = "experiment_5"
   pixel_weight = 0.5
   percep_weight = 0.1
   disc_step = 2
 
   ## train_dataset
   dataset = VITONDataset()
-  loader = VITONDataLoader(dataset, BATCH_SIZE)
+  loader = VITONDataLoader(dataset, batch_size)
 
   ## training loop
-  model = ClothingModel(CHAN_IN, CHAN_OUT)
-  disc = ClothingDiscriminator(CHAN_IN)
+  model = ClothingModel(chan_in, chan_out)
+  disc = ClothingDiscriminator(chan_in)
   model.to(device)
   disc.to(device)
   optimiserG = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -53,7 +53,7 @@ def run():
   print("[*] Start Training")
   step_counter = 0
 
-  for epoch in range(EPOCHS):
+  for epoch in range(epochs):
     progress_bar = tqdm(loader.data_loader)
     model.train(True)
     disc.train(True)
@@ -98,9 +98,9 @@ def run():
       step_counter += 1
       progress_bar.set_description(f"Epoch {epoch}, step {step_counter}: l1 = {pixel_loss.item()}, lpips = {percep_loss.item()}, disc = {disc_loss.item()}, gen = {gen_loss.item()}")
 
-      if step_counter % SAVE_FREQUENCY == 0:
-        save_images(ref, clothing, gt, pred, OUTDIR, step_counter)
-        torch.save(model.state_dict(), f"{OUTDIR}/latest_model.pt")
+      if step_counter % save_frequency == 0:
+        save_images(ref, clothing, gt, pred, outdir, step_counter)
+        torch.save(model.state_dict(), f"{outdir}/latest_model.pt")
 
 
 if __name__ == "__main__":
